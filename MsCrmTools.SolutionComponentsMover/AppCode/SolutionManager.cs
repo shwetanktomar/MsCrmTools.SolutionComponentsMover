@@ -15,6 +15,7 @@ namespace MsCrmTools.SolutionComponentsMover.AppCode
     {
         private readonly IOrganizationService service;
 
+
         public SolutionManager(IOrganizationService service)
         {
             this.service = service;
@@ -124,16 +125,16 @@ Remove best practice check if you really want to copy the following entities to 
                         }
 
 
-                        // --- Environment Variable Definition (component type 380) special handling ---
-                        // When IncludedComponentSettingsValues is null, Dataverse adds settings/metadata by default,
-                        // which may implicitly add Environment Variable Value (381), making "Include value" appear True.
-                        // To mirror the source solution precisely, exclude metadata/settings and subcomponents for 380.
-                        // If the source solution actually included 381, it will be added explicitly elsewhere in the loop.
 
-                        if (type == 380) // Environment Variable Definition
+                        // --- Environment Variable Definition (component type 380) special handling ---
+                        // Dataverse: IncludedComponentSettingsValues == null -> include metadata/settings (default),
+                        // empty array -> DO NOT include metadata/settings. We explicitly exclude for 380 to avoid
+                        // implicitly adding the Environment Variable Value (381) unless it exists in source.
+                        // (If 381 exists in the source, it will be added explicitly as its own component later.)
+                        if (request.ComponentType == ComponentTypes.EnvironmentVariableDefinition) // Environment Variable Definition
                         {
-                            request.DoNotIncludeSubcomponents = true;                 // prevent implicit 381 inclusion
-                            request.IncludedComponentSettingsValues = Array.Empty<string>(); // empty array => no metadata/settings
+                            request.DoNotIncludeSubcomponents = true;                 // don't pull in 381 implicitly
+                            request.IncludedComponentSettingsValues = Array.Empty<string>(); // exclude metadata/settings
                         }
 
 
@@ -239,4 +240,12 @@ Remove best practice check if you really want to copy the following entities to 
             return fullResponse.EntityMetadata.ToList();
         }
     }
+
+    internal static class ComponentTypes
+    {
+        public const int EnvironmentVariableDefinition = 380;
+        public const int EnvironmentVariableValue = 381;
+        // add others here as needed
+    }
+
 }
