@@ -15,6 +15,7 @@ namespace MsCrmTools.SolutionComponentsMover.AppCode
     {
         private readonly IOrganizationService service;
 
+
         public SolutionManager(IOrganizationService service)
         {
             this.service = service;
@@ -123,6 +124,20 @@ Remove best practice check if you really want to copy the following entities to 
                                 component.GetAttributeValue<OptionSetValue>("rootcomponentbehavior")?.Value == 2;
                         }
 
+
+
+                        // --- Environment Variable Definition (component type 380) special handling ---
+                        // Dataverse: IncludedComponentSettingsValues == null -> include metadata/settings (default),
+                        // empty array -> DO NOT include metadata/settings. We explicitly exclude for 380 to avoid
+                        // implicitly adding the Environment Variable Value (381) unless it exists in source.
+                        // (If 381 exists in the source, it will be added explicitly as its own component later.)
+                        if (request.ComponentType == ComponentTypes.EnvironmentVariableDefinition) // Environment Variable Definition
+                        {
+                            request.DoNotIncludeSubcomponents = true;                 // don't pull in 381 implicitly
+                            request.IncludedComponentSettingsValues = Array.Empty<string>(); // exclude metadata/settings
+                        }
+
+
                         service.Execute(request);
 
                         backgroundWorker.ReportProgress(1,
@@ -225,4 +240,12 @@ Remove best practice check if you really want to copy the following entities to 
             return fullResponse.EntityMetadata.ToList();
         }
     }
+
+    internal static class ComponentTypes
+    {
+        public const int EnvironmentVariableDefinition = 380;
+        public const int EnvironmentVariableValue = 381;
+        // add others here as needed
+    }
+
 }
