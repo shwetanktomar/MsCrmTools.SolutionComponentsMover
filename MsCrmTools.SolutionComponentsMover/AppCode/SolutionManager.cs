@@ -123,6 +123,20 @@ Remove best practice check if you really want to copy the following entities to 
                                 component.GetAttributeValue<OptionSetValue>("rootcomponentbehavior")?.Value == 2;
                         }
 
+
+                        // --- Environment Variable Definition (component type 380) special handling ---
+                        // When IncludedComponentSettingsValues is null, Dataverse adds settings/metadata by default,
+                        // which may implicitly add Environment Variable Value (381), making "Include value" appear True.
+                        // To mirror the source solution precisely, exclude metadata/settings and subcomponents for 380.
+                        // If the source solution actually included 381, it will be added explicitly elsewhere in the loop.
+
+                        if (type == 380) // Environment Variable Definition
+                        {
+                            request.DoNotIncludeSubcomponents = true;                 // prevent implicit 381 inclusion
+                            request.IncludedComponentSettingsValues = Array.Empty<string>(); // empty array => no metadata/settings
+                        }
+
+
                         service.Execute(request);
 
                         backgroundWorker.ReportProgress(1,
